@@ -41,7 +41,7 @@ vec3 calculateNormal(vec3 p)
 
 void main()
 {
-	vec3 ligthDir = vec3(1.0f, 1.0f, 1.0f);
+	vec3 ligthDir = vec3(2.0f, 2.0f, -2.0f);
 	vec2 uv = (2.0 * gl_FragCoord.xy - vec2(width, height)) / height;
 	vec3 camPos = vec3(0.0, 0.0, 5.0);
 	vec3 rayDir = normalize(vec3(uv, -1.0));
@@ -51,7 +51,7 @@ void main()
 
 	ligthDir.x *= cos(time);
 	ligthDir.y *= sin(time);
-	ligthDir.z *= sin(time * 0.5);
+	//ligthDir.z *= sin(time * 0.5);
 	normalize(ligthDir);
 
 	for(int i=0; i<MAX_STEP; ++i)

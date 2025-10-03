@@ -7,10 +7,20 @@
 #include "Shader.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow* window)
+void processInput(GLFWwindow* window, Shader& shader)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+    static bool rKeyPressed = false;
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+        if (!rKeyPressed) {
+            shader.reload();
+            rKeyPressed = true;
+        }
+    }
+    else {
+        rKeyPressed = false;
+    }
 }
 
 float deltaTime = 0.0f;
@@ -74,7 +84,7 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        processInput(window);
+        processInput(window, raymarchingShader);
 
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

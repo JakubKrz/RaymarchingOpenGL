@@ -14,8 +14,15 @@ class Shader
 {
 public:
     unsigned int ID;
+    std::string vertexPath;
+    std::string fragmentPath;
 
-    Shader(const char* vertexPath, const char* fragmentPath)
+    Shader(const char* vertexPath, const char* fragmentPath) : vertexPath(vertexPath), fragmentPath(fragmentPath)
+    {
+        compile();
+    }
+
+    bool compile()
     {
         std::string vertexCode;
         std::string fragmentCode;
@@ -41,6 +48,7 @@ public:
         catch (std::ifstream::failure e)
         {
             std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
+            return false;
         }
         const char* vShaderCode = vertexCode.c_str();
         const char* fShaderCode = fragmentCode.c_str();
@@ -59,6 +67,8 @@ public:
         {
             glGetShaderInfoLog(vertex, 512, NULL, infoLog);
             std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+            glDeleteShader(vertex);
+            return false;
         };
 
         fragment = glCreateShader(GL_FRAGMENT_SHADER);
@@ -69,25 +79,46 @@ public:
         {
             glGetShaderInfoLog(fragment, 512, NULL, infoLog);
             std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+            glDeleteShader(vertex);
+            glDeleteShader(fragment);
+            return false;
         };
 
-        ID = glCreateProgram();
-        glAttachShader(ID, vertex);
-        glAttachShader(ID, fragment);
-        glLinkProgram(ID);
+        unsigned int newID = glCreateProgram();
+        glAttachShader(newID, vertex);
+        glAttachShader(newID, fragment);
+        glLinkProgram(newID);
 
-        glGetProgramiv(ID, GL_LINK_STATUS, &success);
+        glGetProgramiv(newID, GL_LINK_STATUS, &success);
         if (!success)
         {
-            glGetProgramInfoLog(ID, 512, NULL, infoLog);
+            glGetProgramInfoLog(newID, 512, NULL, infoLog);
             std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+            glDeleteShader(vertex);
+            glDeleteShader(fragment);
+            glDeleteProgram(newID);
+            return false;
         }
 
+        if (ID != 0)
+        {
+            glDeleteProgram(ID);
+        }
+        ID = newID;
         glDeleteShader(vertex);
         glDeleteShader(fragment);
+        std::cout << "Shaders compiled successfully" << std::endl;
+        return true;
     }
 
-    void use() { glUseProgram(ID); }
+    bool reload() 
+    {
+        std::cout << "Reloading shaders" << std::endl;
+        bool success = compile();
+        return success;
+    }
+
+    void use() { if(ID!=0) glUseProgram(ID); }
     void setBool(const std::string& name, bool value) const
     {
         glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
