@@ -52,7 +52,7 @@ void main()
 	ligthDir.x *= cos(time);
 	ligthDir.y *= sin(time);
 	//ligthDir.z *= sin(time * 0.5);
-	normalize(ligthDir);
+	ligthDir = normalize(ligthDir);
 
 	for(int i=0; i<MAX_STEP; ++i)
 	{

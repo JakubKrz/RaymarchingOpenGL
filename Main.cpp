@@ -56,7 +56,6 @@ int main()
     std::filesystem::path fragmentShaderPath = projPath / "FragmentShader.frag";
     Shader raymarchingShader(vertexShaderPath.string().c_str(), fragmentShaderPath.string().c_str());
     //TODO narysowaæ to z EBO
-    //TODO automatyczne prze³adowywanie shaderów
     float vertices[] = {
      -1.0f, -1.0f, 0.0f,
      -1.0f, 1.0f, 0.0f,
