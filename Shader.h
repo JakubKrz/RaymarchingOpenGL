@@ -17,9 +17,15 @@ public:
     std::string vertexPath;
     std::string fragmentPath;
 
-    Shader(const char* vertexPath, const char* fragmentPath) : vertexPath(vertexPath), fragmentPath(fragmentPath)
+    Shader(const char* vertexPath, const char* fragmentPath) : vertexPath(vertexPath), fragmentPath(fragmentPath), ID(0)
     {
         compile();
+    }
+
+    ~Shader() {
+        if (ID != 0) {
+            glDeleteProgram(ID);
+        }
     }
 
     bool compile()

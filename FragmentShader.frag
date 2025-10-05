@@ -14,17 +14,28 @@ uniform int height;
 //TODO dodanie cieni
 //TODO ³¹czenie kolorów
 //TODO kopioawnie obektów w nieskoñczonoœæ
-
+//TODO softshadows https://iquilezles.org/articles/rmshadows/	
 float sdSphere(vec3 p, float r)
 {
 	return length(p) - r;
 }
 
+
+float sdLink( vec3 p, float le, float r1, float r2 )
+{
+  p = vec3(-p.y, p.x, p.z); //rotation
+  vec3 q = vec3( p.x, max(abs(p.y)-le,0.0), p.z );
+  return length(vec2(length(q.xy)-r1,q.z)) - r2;
+}
+
 float scene(vec3 p)
 {
-	float sphere1 = sdSphere(p, 1.0f);
-	float sphere2 = sdSphere(p - vec3(cos(time*0.3)*2.0f, 0.0f, -2.0f), 1.5f);
-	return min(sphere1, sphere2);
+	vec3 n = vec3(0, 1, 0);
+	float plane = dot(p, n) + 1.0f; //to samo jak p.y z obecnym n (0,1,0)
+	//float plane = p.y + 2.0f;
+	float sphere1 = sdLink(p + vec3(-cos(time*0.3)*2.0f, -1.0f, 0.0f), 1.0f, 1.0f, 0.5f);
+	float sphere2 = sdSphere(p - vec3(cos(time*0.3)*2.0f + 1.0f, 1.0f, 0.0f), 1.5f);
+	return min(max(sphere1, sphere2), plane);
 }
 
 vec3 calculateNormal(vec3 p)
@@ -41,7 +52,7 @@ vec3 calculateNormal(vec3 p)
 
 void main()
 {
-	vec3 ligthDir = vec3(2.0f, 2.0f, -2.0f);
+	vec3 ligthDir = vec3(2.0f, -2.0f, -2.0f);
 	vec2 uv = (2.0 * gl_FragCoord.xy - vec2(width, height)) / height;
 	vec3 camPos = vec3(0.0, 0.0, 5.0);
 	vec3 rayDir = normalize(vec3(uv, -1.0));
@@ -49,8 +60,8 @@ void main()
 	float radius = 2.0f;
 	vec3 color = vec3(0.0f);
 
-	ligthDir.x *= cos(time);
-	ligthDir.y *= sin(time);
+	//ligthDir.x *= cos(time);
+	//ligthDir.y *= sin(time);
 	//ligthDir.z *= sin(time * 0.5);
 	ligthDir = normalize(ligthDir);
 
