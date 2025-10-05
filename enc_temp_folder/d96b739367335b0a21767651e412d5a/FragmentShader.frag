@@ -30,7 +30,6 @@ float sdSphere(vec3 p, float r)
 float sdLink( vec3 p, float le, float r1, float r2 )
 {
   p = vec3(-p.y, p.x, p.z); //rotation
-  p = vec3(p.x, p.z, -p.y); //rotation
   vec3 q = vec3( p.x, max(abs(p.y)-le,0.0), p.z );
   return length(vec2(length(q.xy)-r1,q.z)) - r2;
 }
@@ -40,8 +39,8 @@ float scene(vec3 p)
 	vec3 n = vec3(0, 1, 0);
 	float plane = dot(p, n) + 1.0f; //to samo jak p.y z obecnym n (0,1,0)
 	//float plane = p.y + 2.0f;
-	float sphere1 = sdLink(p - vec3(0.0f, 1.0f, 0.0f), 1.0f, 1.0f, 0.5f);
-	float sphere2 = sdSphere(p - vec3(cos(time)*2.0f, 1.0f, 1.0f), 1.5f);
+	float sphere1 = sdLink(p + vec3(-cos(time*0.3)*2.0f, -1.0f, 0.0f), 1.0f, 1.0f, 0.5f);
+	float sphere2 = sdSphere(p - vec3(cos(time*0.3)*2.0f + 1.0f, 1.0f, 0.0f), 1.5f);
 	return min(smoothmin(sphere1, sphere2, 1.0f), plane);
 }
 
