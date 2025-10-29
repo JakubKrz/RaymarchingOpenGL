@@ -5,27 +5,22 @@
 #include <filesystem>
 
 #include "Shader.h"
+#include "Camera.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow* window, Shader& shader)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-    static bool rKeyPressed = false;
-    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
-        if (!rKeyPressed) {
-            shader.reload();
-            rKeyPressed = true;
-        }
-    }
-    else {
-        rKeyPressed = false;
-    }
-}
+void processInput(GLFWwindow* window, Shader& shader);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
-int width = 800, height = 600;
+unsigned int width = 800, height = 600;
+
+bool firstMouse = true;
+float lastX = width / 2.0f;
+float lastY = height / 2.0f;
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+
 
 int main()
 {
@@ -50,6 +45,9 @@ int main()
     }
     glViewport(0, 0, width, height);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 
     auto projPath = std::filesystem::current_path();
     std::filesystem::path vertexShaderPath = projPath / "VertexShader.vert";
@@ -92,6 +90,14 @@ int main()
         raymarchingShader.setFloat("time", currentFrame);
         raymarchingShader.setInt("width", width);
         raymarchingShader.setInt("height", height);
+
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)width / (float)height, 0.1f, 100.0f);
+        glm::mat4 view = camera.GetViewMatrix();
+        glm::mat4 invProjection = glm::inverse(projection);
+        glm::mat4 invView = glm::inverse(view);
+
+        raymarchingShader.setMat4("invProjection", invProjection);
+        raymarchingShader.setMat4("invView", invView);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -107,4 +113,54 @@ void framebuffer_size_callback(GLFWwindow* window, int newWidth, int newHeight)
     width = newWidth;
     height = newHeight;
     glViewport(0, 0, width, height);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
+
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
+{
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+
+    lastX = xpos;
+    lastY = ypos;
+
+    camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+void processInput(GLFWwindow* window, Shader& shader)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+    static bool rKeyPressed = false;
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+        if (!rKeyPressed) {
+            shader.reload();
+            rKeyPressed = true;
+        }
+    }
+    else {
+        rKeyPressed = false;
+    }
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.ProcessKeyboard(FORWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.ProcessKeyboard(BACKWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.ProcessKeyboard(LEFT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.ProcessKeyboard(RIGHT, deltaTime);
 }

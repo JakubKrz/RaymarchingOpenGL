@@ -4,17 +4,21 @@ out vec4 FragColor;
 uniform float time;
 uniform int width;
 uniform int height;
+uniform mat4 invView;
+uniform mat4 invProjection;
 
 #define MAX_STEP 100
 #define MAX_DISTANCE 100.0f
 
 //kolory obiektów wymagaj¹ id?
 
-//TODO pozycja kamery
+//TODO FIX dziwne ³¹czenie siê obiektów
+//TODO FIX dziwny wygl¹d na granicy obiektu i p³aszczyzny
 //TODO dodanie cieni
 //TODO ³¹czenie kolorów
 //TODO kopioawnie obektów w nieskoñczonoœæ
 //TODO softshadows https://iquilezles.org/articles/rmshadows/	
+//TODO noise
 
 float smoothmin(float a, float b, float k) {
   float h = clamp(0.5 + 0.5 * (b-a)/k, 0.0, 1.0);
@@ -42,7 +46,7 @@ float scene(vec3 p)
 	//float plane = p.y + 2.0f;
 	float sphere1 = sdLink(p - vec3(0.0f, 1.0f, 0.0f), 1.0f, 1.0f, 0.5f);
 	float sphere2 = sdSphere(p - vec3(cos(time)*2.0f, 1.0f, 1.0f), 1.5f);
-	return min(smoothmin(sphere1, sphere2, 1.0f), plane);
+	return min(smoothmin(sphere1, sphere2, 2.0f), plane);
 }
 
 vec3 calculateNormal(vec3 p)
@@ -59,17 +63,19 @@ vec3 calculateNormal(vec3 p)
 
 void main()
 {
-	vec3 ligthDir = vec3(2.0f, -2.0f, -2.0f);
+	vec3 ligthDir = vec3(5.0f, -2.0f, -2.0f);
 	vec2 uv = (2.0 * gl_FragCoord.xy - vec2(width, height)) / height;
-	vec3 camPos = vec3(0.0, 0.0, 5.0);
-	vec3 rayDir = normalize(vec3(uv, -1.0));
+	vec3 camPos = vec3(invView[3]);
+	vec4 target = invProjection * vec4(uv, -1.0, 1.0);
+    target /= target.w;
+	vec3 rayDir = normalize(mat3(invView) * target.xyz);
 	float rayDistance = 0.0f;
 	float radius = 2.0f;
 	vec3 color = vec3(0.0f);
 
-	//ligthDir.x *= cos(time);
-	//ligthDir.y *= sin(time);
-	//ligthDir.z *= sin(time * 0.5);
+	ligthDir.x *= cos(time*0.5f);
+	//ligthDir.y *=  sin(time);
+	//ligthDir.z *= 0.5f*sin(time);
 	ligthDir = normalize(ligthDir);
 
 	for(int i=0; i<MAX_STEP; ++i)

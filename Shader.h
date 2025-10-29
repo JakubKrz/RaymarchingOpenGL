@@ -12,8 +12,9 @@
 
 class Shader
 {
-public:
+private:
     unsigned int ID;
+public:
     std::string vertexPath;
     std::string fragmentPath;
 
@@ -124,7 +125,7 @@ public:
         return success;
     }
 
-    void use() { if(ID!=0) glUseProgram(ID); }
+    void use() const { if(ID!=0) glUseProgram(ID); }
     void setBool(const std::string& name, bool value) const
     {
         glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
@@ -137,11 +138,11 @@ public:
     {
         glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
     }
-    void setMat4(const std::string& name, glm::mat4 value) const
+    void setMat4(const std::string& name, const glm::mat4 value) const
     {
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(value));
     }
-    void setMat3(const std::string& name, glm::mat4 value) const
+    void setMat3(const std::string& name, const glm::mat4 value) const
     {
         glUniformMatrix3fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(value));
     }
@@ -149,7 +150,7 @@ public:
     {
         glUniform3f(glGetUniformLocation(ID, name.c_str()), x, y, z);
     }
-    void setVec3(const std::string& name, glm::vec3 value) const
+    void setVec3(const std::string& name,const glm::vec3 value) const
     {
         glUniform3f(glGetUniformLocation(ID, name.c_str()), value.x, value.y, value.z);
     }
