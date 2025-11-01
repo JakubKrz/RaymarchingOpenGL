@@ -7,13 +7,11 @@ uniform int height;
 uniform mat4 invView;
 uniform mat4 invProjection;
 
-#define MAX_STEP 100
+#define MAX_STEP 200
 #define MAX_DISTANCE 100.0f
 
 //kolory obiektów wymagaj¹ id?
 
-//TODO FIX dziwne ³¹czenie siê obiektów
-//TODO FIX dziwny wygl¹d na granicy obiektu i p³aszczyzny
 //TODO dodanie cieni
 //TODO ³¹czenie kolorów
 //TODO kopioawnie obektów w nieskoñczonoœæ
@@ -30,6 +28,11 @@ float sdSphere(vec3 p, float r)
 	return length(p) - r;
 }
 
+float sdBox(vec3 p, vec3 b) {
+  vec3 q = abs(p) - b;
+  return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+}
+
 
 float sdLink( vec3 p, float le, float r1, float r2 )
 {
@@ -44,9 +47,10 @@ float scene(vec3 p)
 	vec3 n = vec3(0, 1, 0);
 	float plane = dot(p, n) + 1.0f; //to samo jak p.y z obecnym n (0,1,0)
 	//float plane = p.y + 2.0f;
-	float sphere1 = sdLink(p - vec3(0.0f, 1.0f, 0.0f), 1.0f, 1.0f, 0.5f);
-	float sphere2 = sdSphere(p - vec3(cos(time)*2.0f, 1.0f, 1.0f), 1.5f);
-	return min(smoothmin(sphere1, sphere2, 2.0f), plane);
+	float link = sdLink(p - vec3(0.0f, 1.0f, 0.0f), 1.5f, 1.5f, 0.5f);
+	float sphere2 = sdSphere(p - vec3(cos(time)*2.0f, 1.0f, 0.0f), 1.0f);
+	float box = sdBox(p- vec3(cos(time)*2.0f, 1.0f, 0.0f), vec3(0.8f, 0.8f, 0.8f));
+	return min(smoothmin(link, max(box, sphere2), 1.0f), plane);
 }
 
 vec3 calculateNormal(vec3 p)
@@ -87,7 +91,7 @@ void main()
 			float depth = rayDistance - 3.5f;
 			vec3 normal = calculateNormal(p);
 			float ligthIntensity = max(dot(normal, (-ligthDir)), 0.0f);
-			color = vec3(1.0f, 0.0f, 1.0f) * ligthIntensity;
+			color = vec3(1.0f, 0.0f, 1.0f) * ligthIntensity + vec3(1.0f, 0.0f, 1.0f)*0.2;
 			//color = vec3(1.0f, 0.0f, 1.0f) * float(i)/MAX_STEP;
 			break;
 		}
