@@ -8,7 +8,7 @@ uniform mat4 invView;
 uniform mat4 invProjection;
 
 #define MAX_STEP 200
-#define MAX_DISTANCE 100.0f
+#define MAX_DISTANCE 300.0f
 
 //kolory obiektów wymagaj¹ id?
 
@@ -62,16 +62,22 @@ vec3 rotate(vec3 p, vec3 axis, float angle)
     return rotationMatrix(axis, angle) * p;
 }
 
+vec3 repeat(vec3 p, float c) {
+    return mod(p,c) - 0.5 * c;
+}
+
 float scene(vec3 p)
 {
 	vec3 n = vec3(0, 1, 0);
 	float plane = dot(p, n) + 1.0f; //to samo jak p.y z obecnym n (0,1,0)
-	//float plane = p.y + 2.0f;
-	vec3 p1 = rotate(p, vec3(0.0f, 1.0f, 0.0f), 3.141 * time);
-	float link = sdLink(p1 - vec3(0.0f, 1.0f, 0.0f), 1.5f, 1.5f, 0.5f);
-	float sphere2 = sdSphere(p - vec3(cos(time)*2.0f, 1.0f, 0.0f), 1.0f);
-	float box = sdBox(p- vec3(cos(time)*2.0f, 1.0f, 0.0f), vec3(0.8f, 0.8f, 0.8f));
-	return min(smoothmin(link, max(box, sphere2), 1.0f), plane);
+	
+	//vec3 p1 = rotate(p, vec3(0.0f, 1.0f, 0.0f), 3.141 * time);
+	//p1 *= 0.5f; //scaling
+	//float link = sdLink(p1 - vec3(0.0f, 1.0f, 0.0f), 1.5f, 1.5f, 0.5f) * 2.0f;// *2 - scaling
+	vec3 inf = repeat(p, 8.0f);
+	float sphere2 = sdSphere(inf, 1.0f);
+	float box = sdBox(inf, vec3(0.8f, 0.8f, 0.8f));
+	return min(max(box, sphere2), plane);
 }
 
 vec3 calculateNormal(vec3 p)
