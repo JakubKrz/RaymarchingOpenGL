@@ -17,6 +17,7 @@ uniform mat4 invProjection;
 //TODO kopioawnie obektów w nieskoñczonoœæ
 //TODO softshadows https://iquilezles.org/articles/rmshadows/	
 //TODO noise
+//TODO add rotatationX/Y/Z chceck for better way to rotate quaternions?
 
 float smoothmin(float a, float b, float k) {
   float h = clamp(0.5 + 0.5 * (b-a)/k, 0.0, 1.0);
@@ -42,12 +43,32 @@ float sdLink( vec3 p, float le, float r1, float r2 )
   return length(vec2(length(q.xy)-r1,q.z)) - r2;
 }
 
+mat3 rotationMatrix(vec3 axis, float angle)
+{
+    axis = normalize(axis);
+    float s = sin(angle);
+    float c = cos(angle);
+    float oc = 1.0 - c;
+    
+    return mat3(
+        oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,
+        oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,
+        oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c
+    );
+}
+
+vec3 rotate(vec3 p, vec3 axis, float angle)
+{
+    return rotationMatrix(axis, angle) * p;
+}
+
 float scene(vec3 p)
 {
 	vec3 n = vec3(0, 1, 0);
 	float plane = dot(p, n) + 1.0f; //to samo jak p.y z obecnym n (0,1,0)
 	//float plane = p.y + 2.0f;
-	float link = sdLink(p - vec3(0.0f, 1.0f, 0.0f), 1.5f, 1.5f, 0.5f);
+	vec3 p1 = rotate(p, vec3(0.0f, 1.0f, 0.0f), 3.141 * time);
+	float link = sdLink(p1 - vec3(0.0f, 1.0f, 0.0f), 1.5f, 1.5f, 0.5f);
 	float sphere2 = sdSphere(p - vec3(cos(time)*2.0f, 1.0f, 0.0f), 1.0f);
 	float box = sdBox(p- vec3(cos(time)*2.0f, 1.0f, 0.0f), vec3(0.8f, 0.8f, 0.8f));
 	return min(smoothmin(link, max(box, sphere2), 1.0f), plane);
