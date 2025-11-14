@@ -8,13 +8,13 @@ uniform mat4 invView;
 uniform mat4 invProjection;
 
 #define MAX_STEP 200
-#define MAX_DISTANCE 300.0f
+#define MAX_DISTANCE 200.0f
 
 //kolory obiektów wymagaj¹ id?
 
 //TODO dodanie cieni
+//TODO poprawne dodanie oœwietlenia (ambient+specular)
 //TODO ³¹czenie kolorów
-//TODO kopioawnie obektów w nieskoñczonoœæ
 //TODO softshadows https://iquilezles.org/articles/rmshadows/	
 //TODO noise
 //TODO add rotatationX/Y/Z chceck for better way to rotate quaternions?
@@ -74,7 +74,9 @@ float scene(vec3 p)
 	//vec3 p1 = rotate(p, vec3(0.0f, 1.0f, 0.0f), 3.141 * time);
 	//p1 *= 0.5f; //scaling
 	//float link = sdLink(p1 - vec3(0.0f, 1.0f, 0.0f), 1.5f, 1.5f, 0.5f) * 2.0f;// *2 - scaling
-	vec3 inf = repeat(p, 8.0f);
+	
+	vec3 inf = repeat(p, 5.0f);
+	inf = rotate(inf, vec3(0.5f, 1.0f, 0.1f), 0.5f * time);
 	float sphere2 = sdSphere(inf, 1.0f);
 	float box = sdBox(inf, vec3(0.8f, 0.8f, 0.8f));
 	return min(max(box, sphere2), plane);
@@ -119,7 +121,7 @@ void main()
 			vec3 normal = calculateNormal(p);
 			float ligthIntensity = max(dot(normal, (-ligthDir)), 0.0f);
 			color = vec3(1.0f, 0.0f, 1.0f) * ligthIntensity + vec3(1.0f, 0.0f, 1.0f)*0.2;
-			//color = vec3(1.0f, 0.0f, 1.0f) * float(i)/MAX_STEP;
+			//color = vec3(1.0f, 0.0f, 1.0f) * float(i)/MAX_STEP;  //outlines cool efect
 			break;
 		}
 		if(rayDistance > MAX_DISTANCE)
@@ -129,6 +131,10 @@ void main()
 		
 		rayDistance += distToSphere;
 	}
-
-	FragColor = vec4(color, 1.0);
+	float fogFactor = rayDistance/10.0f;
+	fogFactor = log(fogFactor);
+	fogFactor = clamp(fogFactor, 0.0f, 1.0f);
+	vec3 fogColor = vec3(0.8f, 0.9f, 0.9f);
+	vec3 finalColor = mix(color, fogColor, fogFactor);
+	FragColor = vec4(finalColor, 1.0);
 }
