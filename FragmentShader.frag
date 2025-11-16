@@ -7,8 +7,9 @@ uniform int height;
 uniform mat4 invView;
 uniform mat4 invProjection;
 
-#define MAX_STEP 200
+#define MAX_STEP 500
 #define MAX_DISTANCE 200.0f
+#define INF 999999999
 
 //kolory obiektów wymagaj¹ id?
 
@@ -34,6 +35,12 @@ float sdBox(vec3 p, vec3 b) {
   return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
 }
 
+float sdCross( in vec3 p ) {
+  float da = sdBox(p.xyz,vec3(INF,1.0,1.0));
+  float db = sdBox(p.yzx,vec3(1.0,INF,1.0));
+  float dc = sdBox(p.zxy,vec3(1.0,1.0,INF));
+  return min(da,min(db,dc));
+}
 
 float sdLink( vec3 p, float le, float r1, float r2 )
 {
@@ -68,18 +75,25 @@ vec3 repeat(vec3 p, float c) {
 
 float scene(vec3 p)
 {
-	vec3 n = vec3(0, 1, 0);
-	float plane = dot(p, n) + 1.0f; //to samo jak p.y z obecnym n (0,1,0)
-	
-	//vec3 p1 = rotate(p, vec3(0.0f, 1.0f, 0.0f), 3.141 * time);
-	//p1 *= 0.5f; //scaling
-	//float link = sdLink(p1 - vec3(0.0f, 1.0f, 0.0f), 1.5f, 1.5f, 0.5f) * 2.0f;// *2 - scaling
-	
-	vec3 inf = repeat(p, 5.0f);
-	inf = rotate(inf, vec3(0.5f, 1.0f, 0.1f), 0.5f * time);
-	float sphere2 = sdSphere(inf, 1.0f);
-	float box = sdBox(inf, vec3(0.8f, 0.8f, 0.8f));
-	return min(max(box, sphere2), plane);
+	p = repeat(p, 20.0f);
+	float d = sdBox(p, vec3(6.0f));
+	float scale = 1.0f;
+
+	for(int i = 0; i<2; i++)
+	{
+		vec3 a = mod(p * scale, 2.0f) - 1.0f;
+		scale *=3.0f;
+		vec3 r = 1.0 - 3.0 * abs(a);
+		float c = sdCross(r) / scale;
+
+		d = max(d, c);
+	}
+	return d;
+}
+
+vec3 getColor(float amount) {
+  vec3 color = vec3(0.3, 0.5, 0.9) +vec3(0.9, 0.4, 0.2) * cos(6.2831 * (vec3(0.30, 0.20, 0.20) + amount * vec3(1.0)));
+  return color * amount;
 }
 
 vec3 calculateNormal(vec3 p)
@@ -115,11 +129,12 @@ void main()
 	{
 		vec3 p = camPos + rayDistance * rayDir;
 		float distToSphere = scene(p);
-		if(distToSphere < 0.01)
+		if(distToSphere < 0.0001)
 		{
 			float depth = rayDistance - 3.5f;
 			vec3 normal = calculateNormal(p);
 			float ligthIntensity = max(dot(normal, (-ligthDir)), 0.0f);
+			//color = getColor(ligthIntensity);
 			color = vec3(1.0f, 0.0f, 1.0f) * ligthIntensity + vec3(1.0f, 0.0f, 1.0f)*0.2;
 			//color = vec3(1.0f, 0.0f, 1.0f) * float(i)/MAX_STEP;  //outlines cool efect
 			break;
@@ -131,10 +146,11 @@ void main()
 		
 		rayDistance += distToSphere;
 	}
-	float fogFactor = rayDistance/10.0f;
+	float fogFactor = rayDistance/50.0f;
 	fogFactor = log(fogFactor);
 	fogFactor = clamp(fogFactor, 0.0f, 1.0f);
-	vec3 fogColor = vec3(0.8f, 0.9f, 0.9f);
+	//vec3 fogColor = vec3(0.6f, 0.5f, 0.8f);
+	vec3 fogColor = vec3(0.3f, 0.1f, 0.3f);
 	vec3 finalColor = mix(color, fogColor, fogFactor);
 	FragColor = vec4(finalColor, 1.0);
 }
