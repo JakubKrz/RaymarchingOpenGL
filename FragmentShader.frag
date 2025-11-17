@@ -75,25 +75,41 @@ vec3 repeat(vec3 p, float c) {
 
 float scene(vec3 p)
 {
-	p = repeat(p, 20.0f);
+	//p = repeat(p, 15.0f);
 	float d = sdBox(p, vec3(6.0f));
 	float scale = 1.0f;
 
 	for(int i = 0; i<2; i++)
 	{
 		vec3 a = mod(p * scale, 2.0f) - 1.0f;
-		scale *=3.0f;
+		scale *=10.0f;
 		vec3 r = 1.0 - 3.0 * abs(a);
 		float c = sdCross(r) / scale;
 
 		d = max(d, c);
 	}
-	return d;
+	float plane = p.y + 10;
+	return min(d, plane);
 }
 
 vec3 getColor(float amount) {
   vec3 color = vec3(0.3, 0.5, 0.9) +vec3(0.9, 0.4, 0.2) * cos(6.2831 * (vec3(0.30, 0.20, 0.20) + amount * vec3(1.0)));
   return color * amount;
+}
+
+float shadow(vec3 p, vec3 ligthDir)
+{
+	float curStep = 0.1;
+	for(int i=0; i<200; i++)
+	{
+		float h = scene(p + ligthDir * curStep);
+		if(h<0.01)
+		{
+			return 1.0;
+		}
+		curStep+=h;
+	}
+	return 0.0;
 }
 
 vec3 calculateNormal(vec3 p)
@@ -120,7 +136,7 @@ void main()
 	float radius = 2.0f;
 	vec3 color = vec3(0.0f);
 
-	ligthDir.x *= cos(time*0.5f);
+	//ligthDir.x *= cos(time*0.5f);
 	//ligthDir.y *=  sin(time);
 	//ligthDir.z *= 0.5f*sin(time);
 	ligthDir = normalize(ligthDir);
@@ -137,6 +153,8 @@ void main()
 			//color = getColor(ligthIntensity);
 			color = vec3(1.0f, 0.0f, 1.0f) * ligthIntensity + vec3(1.0f, 0.0f, 1.0f)*0.2;
 			//color = vec3(1.0f, 0.0f, 1.0f) * float(i)/MAX_STEP;  //outlines cool efect
+			float shadowMult = shadow(p, -ligthDir);
+			color = mix(color, vec3(0.0f), shadowMult);
 			break;
 		}
 		if(rayDistance > MAX_DISTANCE)
