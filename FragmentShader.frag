@@ -13,22 +13,45 @@ uniform mat4 invProjection;
 
 //kolory obiektów wymagaj¹ id?
 
-//TODO Soft shadows
 //TODO poprawne dodanie oœwietlenia (ambient+specular)
 //TODO ³¹czenie kolorów
-//TODO softshadows https://iquilezles.org/articles/rmshadows/	
+//TODO antialiasing
 //TODO noise
+//TODO shell texturing?
 //TODO add rotatationX/Y/Z chceck for better way to rotate quaternions?
 //TODO add physical representation of ligth source
 //TODO add ImGUI to change scene?
+//TODO modify softShodow, add more input params
+//TODO softshadows https://iquilezles.org/articles/rmshadows/	
+
+
+struct Result {
+	float distance;
+	vec3 color;
+};
+
+Result unionResult(Result a, Result b) {
+    return (a.distance < b.distance) ? a : b;
+}
+
+Result smoothUnionResult(Result resA, Result resB, float k)
+{
+    float a = resA.distance;
+    float b = resB.distance;
+
+    float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+    float dist = mix(b, a, h) - k * h * (1.0 - h);
+    vec3 color = mix(resB.color, resA.color, h);
+
+    return Result(dist, color);
+}
 
 float smoothmin(float a, float b, float k) {
   float h = clamp(0.5 + 0.5 * (b-a)/k, 0.0, 1.0);
   return mix(b, a, h) - k * h * (1.0 - h);
 }
 
-float sdSphere(vec3 p, float r)
-{
+float sdSphere(vec3 p, float r){
 	return length(p) - r;
 }
 
@@ -44,8 +67,7 @@ float sdCross( in vec3 p ) {
   return min(da,min(db,dc));
 }
 
-float sdLink( vec3 p, float le, float r1, float r2 )
-{
+float sdLink( vec3 p, float le, float r1, float r2 ){
   p = vec3(-p.y, p.x, p.z); //rotation
   p = vec3(p.x, p.z, -p.y); //rotation
   vec3 q = vec3( p.x, max(abs(p.y)-le,0.0), p.z );
@@ -56,8 +78,7 @@ float sdSine(vec3 p) {
 	return 1.0f - (sin(p.x) + sin(p.y) + sin(p.z))/3.0f;
 }
 
-mat3 rotationMatrix(vec3 axis, float angle)
-{
+mat3 rotationMatrix(vec3 axis, float angle){
     axis = normalize(axis);
     float s = sin(angle);
     float c = cos(angle);
@@ -70,8 +91,7 @@ mat3 rotationMatrix(vec3 axis, float angle)
     );
 }
 
-vec3 rotate(vec3 p, vec3 axis, float angle)
-{
+vec3 rotate(vec3 p, vec3 axis, float angle) {
     return rotationMatrix(axis, angle) * p;
 }
 
@@ -79,33 +99,20 @@ vec3 repeat(vec3 p, float c) {
     return mod(p,c) - 0.5 * c;
 }
 
-float scene(vec3 p)
+Result scene(vec3 p)
 {
-	//	p = repeat(p, 15.0f);
-//	float d = sdBox(p, vec3(3.0f));
-//	float scale = 1.0f;
-//
-//	for(int i = 0; i<2; i++)
-//	{
-//		vec3 a = mod(p * scale, 2.0f) - 1.0f;
-//		scale *=10.0f;
-//		vec3 r = 1.0 - 3.0 * abs(a);
-//		float c = sdCross(r) / scale;
-//
-//		d = max(d, c);
-//	}
-	p = repeat(p , 8.0f);
-	vec3 p1 = rotate(p, vec3(1.0), time * 0.4);
-	//p1 = repeat(p1 , 10.0f); //wszystko sie obraca
-	float scale = 8.0 + 6.0 * sin(time * 0.5);
-	float sine = (0.8 - sdSine(p1 * scale))/(scale * 2.0);
-
-	float sphere = sdSphere(p1, 1.5f);
-	return max(sine, sphere);
+	//vec3 p1 = repeat(p, 10.0f);
 	float plane = p.y + 1.0f;
+	Result planeRes = Result(plane, vec3(0.0f, 0.4f, 0.0f));
+
 	float link = sdLink(p + vec3(-cos(time*0.1)*2.0f, -1.0f, 0.0f), 1.0f, 1.0f, 0.5f);
-	float sphere2 = sdSphere(p - vec3(cos(time*0.3)*2.0f + 1.0f, 1.0f, 0.0f), 1.5f);
-	return min(smoothmin(link, sphere2, 2), plane);
+	Result linkRes = Result(link, vec3(0.8f, 0.0f, 0.0f));
+
+	float sphere = sdSphere(p - vec3(cos(time*0.3)*2.0f + 1.0f, 1.0f, 0.0f), 1.5f);
+	Result sphereRes = Result(sphere, vec3(0.3f, 0.2f, 0.7f));
+
+	Result currentRes = smoothUnionResult(sphereRes, linkRes, 2.0f);
+	return unionResult(currentRes, planeRes);
 }
 
 vec3 getColor(float amount) {
@@ -113,13 +120,14 @@ vec3 getColor(float amount) {
   return color * amount;
 }
 
-float shadow(vec3 p, vec3 ligthDir)
+float softShadows(vec3 p, vec3 ligthDir)
 {
 	float res = 1.0f;
 	float curStep = 0.1;
 	for(int i=0; i<200; i++)
 	{
-		float h = scene(p + ligthDir * curStep);
+		Result closestObj = scene(p + ligthDir * curStep);
+		float h = closestObj.distance;
 		if(h<0.01)
 		{
 			return 0.0;
@@ -135,9 +143,9 @@ vec3 calculateNormal(vec3 p)
 	vec2 epsilon = vec2(0.01, 0.0);
 
 	vec3 normal = vec3(
-        scene(p + epsilon.xyy) - scene(p - epsilon.xyy),
-        scene(p + epsilon.yxy) - scene(p - epsilon.yxy),
-        scene(p + epsilon.yyx) - scene(p - epsilon.yyx)
+        scene(p + epsilon.xyy).distance - scene(p - epsilon.xyy).distance,
+        scene(p + epsilon.yxy).distance - scene(p - epsilon.yxy).distance,
+        scene(p + epsilon.yyx).distance - scene(p - epsilon.yyx).distance
     );
 	return normalize(normal);
 }
@@ -162,17 +170,19 @@ void main()
 	for(int i=0; i<MAX_STEP; ++i)
 	{
 		vec3 p = camPos + rayDistance * rayDir;
-		float distToSphere = scene(p);
+		Result closestObj = scene(p);
+		float distToSphere = closestObj.distance;
+
 		if(distToSphere < 0.0001)
 		{
 			float depth = rayDistance - 3.5f;
 			vec3 normal = calculateNormal(p);
 			float ligthIntensity = max(dot(normal, (-ligthDir)), 0.0f);
 			//color = getColor(ligthIntensity);
-			//color = vec3(1.0f, 0.0f, 1.0f) * ligthIntensity + vec3(1.0f, 0.0f, 1.0f)*0.2;
-			color = vec3(1.0f, 0.0f, 1.0f) * float(i)/MAX_STEP;  //outlines cool efect
-			float shadowMult = 1.0f;// shadow(p, -ligthDir);
-			color = mix(vec3(0.2f, 0.0f, 0.2f), color, shadowMult);
+			color = closestObj.color * ligthIntensity + closestObj.color*0.1f;
+			//color = vec3(1.0f, 0.0f, 1.0f) * float(i)/MAX_STEP;  //outlines cool efect
+			float shadowMult = softShadows(p, -ligthDir);
+			color = mix(vec3(0.0f, 0.0f, 0.0f), color, shadowMult);
 			break;
 		}
 		if(rayDistance > MAX_DISTANCE)
@@ -186,7 +196,7 @@ void main()
 	fogFactor = log(fogFactor);
 	fogFactor = clamp(fogFactor, 0.0f, 1.0f);
 	//vec3 fogColor = vec3(0.6f, 0.5f, 0.8f);
-	vec3 fogColor = vec3(0.3f, 0.1f, 0.3f);
+	vec3 fogColor = vec3(0.3f, 0.3f, 0.5f);
 	vec3 finalColor = mix(color, fogColor, fogFactor);
 	FragColor = vec4(finalColor, 1.0);
 }
